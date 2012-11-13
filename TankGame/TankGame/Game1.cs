@@ -143,7 +143,7 @@ namespace TankGame
 
                 if (Vector2.Distance(playerTank.pos, enemyTank.pos) < 50)
                 {
-                    enemyTank.pos -= enemyTank.look * 10;
+                    enemyTank.pos -= enemyTank.look * 1.4f;
                 }
             }
             else
