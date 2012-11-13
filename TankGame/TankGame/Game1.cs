@@ -1,3 +1,10 @@
+/*
+ * Game1.cs
+ * 
+ * Author: Elena Chen
+ * Date: Oct 1st, 2012
+ */
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,8 +26,24 @@ namespace TankGame
         public static Game1 Instance;
         public GraphicsDeviceManager graphics;
         public SpriteBatch spriteBatch;
-
         public List<Entity> children = new List<Entity>();
+
+        Tank playerTank;
+        AITank enemyTank;
+
+        Vector2 basis;
+        Vector2 target;
+
+        public int ScreenWidth
+        {
+            get { return GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width; }
+        }
+
+        public int ScreenHeight
+        {
+            get { return GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height; }
+        }
+
         public Game1()
         {
             Instance = this;
@@ -36,12 +59,17 @@ namespace TankGame
         /// </summary>
         protected override void Initialize()
         {
-            Tank tank = new Tank();
-            children.Add(tank);
+            basis = new Vector2(0, -1);
+
+            playerTank = new Tank();
+            enemyTank = new AITank();
+
+            children.Add(playerTank);
+            children.Add(enemyTank);
             
-            foreach (Entity entity in children)
+            for ( int i = 0; i < children.Count(); i++ )
             {
-                entity.Initialize();
+                children[i].Initialize();
             }
 
             base.Initialize();
@@ -56,9 +84,9 @@ namespace TankGame
             // Create a new SpriteBatch, which can be used to draw textures.
             spriteBatch = new SpriteBatch(GraphicsDevice);
 
-            foreach (Entity entity in children)
+            for ( int i = 0; i < children.Count(); i++ )
             {
-                entity.LoadContent();
+                children[i].LoadContent();
             }
         }
 
@@ -78,15 +106,51 @@ namespace TankGame
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
-            foreach (Entity entity in children)
+            float timeDelta = (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+            for ( int i = 0; i < children.Count(); i++ )
             {
-                entity.Update(gameTime);
+                children[i].Update(gameTime);
+
+                // If an entity is dead, remove it from the children list
+                if (!children[i].Alive)
+                {
+                    children.Remove(children[i]);
+                }
             }
+
             // Allows the game to exit
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
                 this.Exit();
 
-            // TODO: Add your update logic here
+            // AITank takes actions when playerTank is less than 100 close
+            if (Detect())
+            {
+                target = playerTank.pos - enemyTank.pos;
+
+                float theta = (float)Math.Acos(Vector2.Dot(basis, target) / target.Length());
+
+                if (target.X < 0)
+                {
+                    enemyTank.rotation = (float)Math.PI * 2.0f - theta;
+                }
+                else
+                {
+                    enemyTank.rotation = theta;
+                }
+
+                enemyTank.Attack = true;
+
+                if (Vector2.Distance(playerTank.pos, enemyTank.pos) < 50)
+                {
+                    enemyTank.pos -= enemyTank.look * 10;
+                }
+            }
+            else
+            {
+                //enemyTank.rotation = 0.0f;
+                enemyTank.Attack = false;
+            }
 
             base.Update(gameTime);
         }
@@ -100,13 +164,41 @@ namespace TankGame
             GraphicsDevice.Clear(Color.White);
 
             spriteBatch.Begin();
-            foreach (Entity entity in children)
+            for (int i = 0; i < children.Count; i++ )
             {
-                entity.Draw(gameTime);
+                children[i].Draw(gameTime);
             }
             spriteBatch.End();
 
             base.Draw(gameTime);
+        }
+
+        // For AITank to detect if playerTank is in shooting area (distance < 100)
+        protected bool Detect()
+        {
+            float distance = Vector2.Distance(playerTank.pos, enemyTank.pos);
+
+            if (distance > 200)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        // Collision Detect
+        protected bool Collide()
+        {
+            Rectangle rectPTank = new Rectangle((int)playerTank.pos.X,
+                (int)playerTank.pos.Y,
+                playerTank.sprite.Width,
+                playerTank.sprite.Height);
+            Rectangle rectETank = new Rectangle((int)enemyTank.pos.X,
+                (int)enemyTank.pos.Y,
+                enemyTank.sprite.Width + 200,
+                enemyTank.sprite.Height + 200);
+
+            return rectETank.Intersects(rectPTank);
         }
     }
 }
