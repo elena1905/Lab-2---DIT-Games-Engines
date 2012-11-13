@@ -1,4 +1,3 @@
-Lab-1---DIT-Games-Engines
-=========================
+Lab-2---DIT-Games-Engines
 
-Lab 1 Game Engines Code - Small Tank Game
+Lab 2 of Games Engines 1 - Small Tank Game 
